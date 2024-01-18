@@ -25,6 +25,17 @@ struct AlertService {
             .build()
         viewController.present(alert, animated: true)
     }
+    
+    func alertNonExistentContact() {
+        guard let viewController else { return }
+        let nonExistentContactMessage = AlertService.Message.nonExistentContact
+
+        let alert = AlertBuilder()
+            .setMessage(String(describing: nonExistentContactMessage))
+            .addAction(title: "확인", style: .default, handler: nil)
+            .build()
+        viewController.present(alert, animated: true)
+    }
 }
 
 extension AlertService {
@@ -33,6 +44,7 @@ extension AlertService {
         case invalidName
         case invalidAge
         case invalidPhoneNumber
+        case nonExistentContact
         
         var description: String {
             switch self {
@@ -44,6 +56,8 @@ extension AlertService {
                 "입력한 나이 정보가 잘못되었습니다."
             case .invalidPhoneNumber:
                 "입력한 연락처 정보가 잘못되었습니다."
+            case .nonExistentContact:
+                "존재하지 않는 연락처입니다."
             }
         }
     }
