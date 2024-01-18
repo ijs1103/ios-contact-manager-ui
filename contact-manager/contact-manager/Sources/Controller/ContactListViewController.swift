@@ -2,9 +2,9 @@ import UIKit
 
 final class ContactListViewController: UIViewController {
     
+    private let alertService = AlertService()
     private let contactManager: ContactManager
-    private let tableViewDataSource: ContactListTableViewDataSource
-    
+
     private lazy var navigationBar: UINavigationBar = {
         let navigationBar = UINavigationBar()
         let addContactButton = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(addContactButtonTapped))
@@ -12,16 +12,16 @@ final class ContactListViewController: UIViewController {
         return navigationBar
     }()
     
-    private let tableView: UITableView = {
+    private lazy var tableView: UITableView = {
         let tableView = UITableView()
         tableView.register(ContactCell.self, forCellReuseIdentifier: ContactCell.identifier)
         tableView.translatesAutoresizingMaskIntoConstraints = false
+        tableView.dataSource = self
         return tableView
     }()
     
     init(contactManager: ContactManager) {
         self.contactManager = contactManager
-        self.tableViewDataSource = ContactListTableViewDataSource(contacts: contactManager.contacts)
         super.init(nibName: nil, bundle: nil)
     }
     
@@ -53,8 +53,6 @@ extension ContactListViewController {
     }
     
     private func setupTableView() {
-        tableView.dataSource = tableViewDataSource
-        
         view.addSubview(tableView)
         NSLayoutConstraint.activate([
             tableView.topAnchor.constraint(equalTo: navigationBar.bottomAnchor),
@@ -70,7 +68,38 @@ extension ContactListViewController {
     }
     
     private func reloadContactList() {
-        tableViewDataSource.updateContacts(contactManager.contacts)
         tableView.reloadData()
     }
 }
+
+extension ContactListViewController: UITableViewDataSource {
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return contactManager.contacts.count
+    }
+    
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        guard let cell = tableView.dequeueReusableCell(withIdentifier: ContactCell.identifier, for: indexPath) as? ContactCell else {
+            fatalError("ContactCell load Failed")
+        }
+        let contact = contactManager.contacts[indexPath.row]
+        cell.configure(with: contact)
+        cell.accessoryType = .disclosureIndicator
+        cell.selectionStyle = .none
+        return cell
+    }
+    
+    func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
+        let phoneNumber = contactManager.contacts[indexPath.row].phoneNumber
+        if editingStyle == .delete {
+            do {
+                try contactManager.deleteContact(phoneNumber: phoneNumber)
+            } catch ContactManager.ContactError.nonExistentContact {
+                alertService.alertNonExistentContact()
+            } catch {
+                print("unknown error")
+            }
+            tableView.deleteRows(at: [indexPath], with: .fade)
+        }
+    }
+}
+
